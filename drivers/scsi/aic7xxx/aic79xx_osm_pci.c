@@ -190,7 +190,13 @@ ahd_linux_pci_dev_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	}
 	pci_set_master(pdev);
 
-	if (sizeof(dma_addr_t) > 4) {
+	if (entry->full_id == ID_AHA_29320LPE) {
+		/*
+		 * 2.0.23
+		 * Restrict DMA to 32bit for 29320LPE
+		 */
+		dma_set_mask(dev, DMA_BIT_MASK(32));
+	} else if (sizeof(dma_addr_t) > 4) {
 		const u64 required_mask = dma_get_required_mask(dev);
 
 		if (required_mask > DMA_BIT_MASK(39) &&
