@@ -61,6 +61,10 @@ The following information is available in this file:
                               PCI-X 133MHz to Ultra320 SCSI Card
                               (One external VHDC, one internal
                               68-pin)
+   Adaptec SCSI Card 29320LPE Single Channel 64-bit Low Profile        7901B
+                              PCI-E to Ultra320 SCSI Card
+                              (One external VHDC, one internal
+                              68-pin)
 2. Version History
 
    3.0	  (December 1st, 2005)
