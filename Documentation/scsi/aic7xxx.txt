@@ -131,10 +131,150 @@ The following information is available in this file:
       SCSI "stub" effects.
 
 2. Version History
-   7.0	  (4th August, 2005)
+   7.0 (4th August, 2005)
 	- Updated driver to use SCSI transport class infrastructure
 	- Upported sequencer and core fixes from last adaptec released
 	  version of the driver.
+
+   6.3.11 (December 23, 2004)
+	- Fix wrongly calling scsi_adjust_queue_depth() when
+	  the scsi device has no request_queue.
+	- Adding proper PCI ID tables to support
+	  hotplugging.
+	- Fix a compilation issue after scsi_sleep() became
+	  obsolete, in stead of the new msleep() and
+	  ssleep() functions.
+	- Edit Adaptec Customer Support info.
+	- "Warnings are errors" is now selectable by the
+	  kbuild system -- make it so here.
+	- Fix undefined symbol when compiling aic79xx for 2.6.
+	  Also regenerate the aic7xxx reg and seq files.
+	- Fix a double free.  If "ahc_alloc()" fails, it
+	  frees the "name" argument passed.
+	- As requested by linux-scsi: Add a flag which explicitly
+	  forbids/allows the compilation of the firmware across
+	  the whole build system.
+	- When doing domain validation, we send commands
+	  which do not have a struct request.  In this case
+	  we cannot just call scsi_populate_tag_msg(), since
+	  it dereferences it blindly and oopses the kernel.
+	  Now we call scsi_populate_tag_msg() only if the
+	  SCSI command has a struct request associated with
+	  it.
+
+   6.3.10 (July 22, 2004)
+	- Fix a compilation issue due to the changed location and name
+	  of the "hosts.h" file.  Now it resides as <scsi/scsi_host.h>
+	- Add support for 16 byte CDBs.
+
+   6.3.9 (May 13th, 2004)
+	- Flag driver threads with PF_FREEZE to support software suspend.
+
+   6.3.8 (April 9th, 2004)
+	- Return "command timeout" status instead of "selection timeout
+	  status" to the SCSI mid-layer in response to selection timeouts.
+	  While the latter may seem more correct, the mid-layer will not
+	  offline devices suffering from persistent selection timeouts.
+	  This leads to extremely long recovery times for devices that
+	  go missing.  Returning command timeout status causes the mid-layer
+	  to enter recovery and eventually offline persistently missing
+	  devices.
+
+   6.3.7 (March 29th, 2004)
+	- Abort all pending transactions on a target in response to
+	  a selection timeout.  This greatly increases the speed with
+	  which we recover when a device "goes missing".
+
+   6.3.6 (February 24th, 2004)
+	- Implement delay on I/O after delivery of a Target Reset.
+	- Correct deregistration of sysrq handler when multiple
+	  controllers are detected.
+	- Correct timeout recovery issues found while debugging
+	  active/active failover on an external RAID controller.
+
+   6.3.5 (February 22nd, 2004)
+	- Force a renegotiation on all inqury commands so that
+	  the negotiated transfer parameters are correct even
+	  if the device has been externally reset since our last
+	  command.  Devices are not allowed to report unit attention
+	  conditions in response to inquiry requests otherwise we'd
+	  not need to treat inquiry commands specially.
+	- Remove all vestiges of pre-2.4.X support.
+	- Move all lock and DMA API support to the aiclib.
+
+   6.3.4 (December 22nd, 2003)
+	- Provide a better description string for the 2915/30LP.
+	- Sniff sense information returned by targets for unit
+	  attention errors that may indicate that the device has
+	  been changed.  If we see such status for non Domain
+	  Validation related commands, start a DV scan for the
+	  target.  In the past, DV would only occur for hot-plugged
+	  devices if no target had been previously probed for a
+	  particular ID.  This change guarantees that the DV process
+	  will occur even if the user swaps devices without any
+	  interveining I/O to tell us that a device has gone missing.
+	  The old behavior, among other things, would fail to spin up
+	  drives that were hot-plugged since the Linux mid-layer
+	  will only spin-up drives on initial attach.
+
+   6.3.3 (November 6th, 2003)
+	- Support the 2.6.0-test9 kernel
+	- Fix rare deadlock caused by using del_timer_sync from within
+	  a timer handler.
+
+   6.3.2 (October 28th, 2003)
+	- Enforce a bus settle delay for bus resets that the
+	  driver initiates.
+	- Fall back to basic DV for U160 devices that lack an
+	  echo buffer.
+	- Correctly detect that left over BIOS data has not
+	  been initialized when the CHPRST status bit is set
+	  during driver initialization.
+
+   6.3.1 (October 21st, 2003)
+	- Fix a compiler error when building with only EISA or PCI
+	  support compiled into the kernel.
+	- Add chained dependencies to both the driver and aicasm Makefiles
+	  to avoid problems with parallel builds.
+	- Move additional common routines to the aiclib OSM library
+	  to reduce code duplication.
+	- Fix a bug in the testing of the AHC_TMODE_WIDEODD_BUG that
+	  could cause target mode operations to hang.
+	- Leave removal of softcs from the global list of softcs to
+	  the OSM.  This allows us to avoid holding the list_lock during
+	  device destruction.
+
+   6.3.0 (September 8th, 2003)
+	- Move additional common routines to the aiclib OSM library
+	  to reduce code duplication.
+	- Bump minor number to reflect change in error recovery strategy.
+
+   6.2.38 (August 31st, 2003)
+	- Avoid an inadvertant reset of the controller during the
+	  memory mapped I/O test should the controller be left in
+	  the reset state prior to driver initialization.  On some
+	  systems, this extra reset resulted in a system hang due
+	  to a chip access that occurred too soon after reset.
+	- Move additional common routines to the aiclib OSM library
+	  to reduce code duplication.
+	- Add magic sysrq handler that causes a card dump to be output
+	  to the console for each controller.
+
+   6.2.37 (August 12th, 2003)
+	- Perform timeout recovery within the driver instead of relying
+	  on the Linux SCSI mid-layer to perform this function.  The
+	  mid-layer does not know the full state of the SCSI bus and
+	  is therefore prone to looping for several minutes to effect
+	  recovery.  The new scheme recovers within 15 seconds of the
+	  failure.
+	- Support writing 93c56/66 SEEPROM on newer cards.
+	- Avoid clearing ENBUSFREE during single stepping to avoid
+	  spurious "unexpected busfree while idle" messages.
+	- Enable the use of the "Auto-Access-Pause" feature on the
+	  aic7880 and aic7870 chips.  It was disabled due to an
+	  oversight.  Using this feature drastically reduces command
+	  delivery latency.
+
    6.2.36 (June 3rd, 2003)
         - Correct code that disables PCI parity error checking.
         - Correct and simplify handling of the ignore wide residue
