@@ -2430,6 +2430,12 @@ ahd_handle_scsiint(struct ahd_softc *ahd, u_int intstat)
 	u_int		 status;
 	u_int		 lqistat1;
 	u_int		 lqostat0;
+	/*
+	 * lqostat1 added in 2.0.19 (2006-09-05):
+	 * Changed the register check for BUSFREE
+	 * from lqistat1 to lqostat1
+	 */
+	u_int		 lqostat1;
 	u_int		 scbid;
 	u_int		 busfreetime;
 
@@ -2441,6 +2447,7 @@ ahd_handle_scsiint(struct ahd_softc *ahd, u_int intstat)
 	status = ahd_inb(ahd, SSTAT1) & (SELTO|SCSIRSTI|BUSFREE|SCSIPERR);
 	lqistat1 = ahd_inb(ahd, LQISTAT1);
 	lqostat0 = ahd_inb(ahd, LQOSTAT0);
+	lqostat1 = ahd_inb(ahd, LQOSTAT1);
 	busfreetime = ahd_inb(ahd, SSTAT2) & BUSFREETIME;
 
 	/*
@@ -2586,8 +2593,7 @@ ahd_handle_scsiint(struct ahd_softc *ahd, u_int intstat)
 		 */
 		ahd_outb(ahd, CLRLQIINT1, CLRLQICRCI_NLQ);
 	} else if ((status & BUSFREE) != 0
-		|| (lqistat1 & LQOBUSFREE) != 0) {
-		u_int lqostat1;
+		|| (lqostat1 & LQOBUSFREE) != 0) {
 		int   restart;
 		int   clear_fifo;
 		int   packetized;
