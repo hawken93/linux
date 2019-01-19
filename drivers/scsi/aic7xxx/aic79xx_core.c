@@ -1807,6 +1807,34 @@ ahd_handle_seqint(struct ahd_softc *ahd, u_int intstat)
 				 ~(AHD_MODE_UNKNOWN_MSK|AHD_MODE_CFG_MSK));
 		scbid = ahd_get_scbptr(ahd);
 		scb = ahd_lookup_scb(ahd, scbid);
+
+		/*
+		 * 2.0.22
+		 * Switch back to Non Pack
+		 */
+		struct ahd_devinfo devinfo;
+		struct ahd_initiator_tinfo *targ_info;
+		struct ahd_tmode_tstate *tstate;
+		struct ahd_transinfo *tinfo;
+
+		ahd_compile_devinfo(&devinfo, SCB_GET_OUR_ID(scb),
+				    SCB_GET_TARGET(ahd, scb),
+				    SCB_GET_LUN(scb),
+				    SCB_GET_CHANNEL(ahd, scb),
+				    ROLE_INITIATOR);
+		targ_info = ahd_fetch_transinfo(ahd,
+						devinfo.channel,
+						devinfo.our_scsiid,
+						devinfo.target,
+						&tstate);
+		tinfo = &targ_info->curr;
+		ahd_set_width(ahd, &devinfo, MSG_EXT_WDTR_BUS_8_BIT,
+			      AHD_TRANS_ACTIVE, /*paused*/TRUE);
+		ahd_set_syncrate(ahd, &devinfo, /*period*/0,
+				 /*offset*/0, /*ppr_options*/0,
+				 AHD_TRANS_ACTIVE, /*paused*/TRUE);
+
+
 		if (scb == NULL) {
 			/*
 			 * Somehow need to know if this
@@ -1836,6 +1864,20 @@ ahd_handle_seqint(struct ahd_softc *ahd, u_int intstat)
 		if ((ahd_debug & AHD_SHOW_RECOVERY) != 0)
 			printk("%s: Entering NONPACK\n", ahd_name(ahd));
 #endif
+
+		/*
+		 * 2.0.22
+		 * Allow the sequencer to continue with
+		 * non-pack processing.
+		 */
+#ifdef AHD_DEBUG
+		ahd_dump_card_state(ahd);
+#endif
+		ahd_set_modes(ahd, AHD_MODE_SCSI, AHD_MODE_SCSI);
+		ahd_outb(ahd, CLRLQOINT1, CLRLQOPHACHGINPKT);
+		if ((ahd->bugs & AHD_CLRLQO_AUTOCLR_BUG) != 0)
+			ahd_outb(ahd, CLRLQOINT1, 0);
+
 		break;
 	}
 	case INVALID_SEQINT:
@@ -2388,6 +2430,12 @@ ahd_handle_scsiint(struct ahd_softc *ahd, u_int intstat)
 	u_int		 status;
 	u_int		 lqistat1;
 	u_int		 lqostat0;
+	/*
+	 * lqostat1 added in 2.0.19 (2006-09-05):
+	 * Changed the register check for BUSFREE
+	 * from lqistat1 to lqostat1
+	 */
+	u_int		 lqostat1;
 	u_int		 scbid;
 	u_int		 busfreetime;
 
@@ -2399,6 +2447,7 @@ ahd_handle_scsiint(struct ahd_softc *ahd, u_int intstat)
 	status = ahd_inb(ahd, SSTAT1) & (SELTO|SCSIRSTI|BUSFREE|SCSIPERR);
 	lqistat1 = ahd_inb(ahd, LQISTAT1);
 	lqostat0 = ahd_inb(ahd, LQOSTAT0);
+	lqostat1 = ahd_inb(ahd, LQOSTAT1);
 	busfreetime = ahd_inb(ahd, SSTAT2) & BUSFREETIME;
 
 	/*
@@ -2544,8 +2593,7 @@ ahd_handle_scsiint(struct ahd_softc *ahd, u_int intstat)
 		 */
 		ahd_outb(ahd, CLRLQIINT1, CLRLQICRCI_NLQ);
 	} else if ((status & BUSFREE) != 0
-		|| (lqistat1 & LQOBUSFREE) != 0) {
-		u_int lqostat1;
+		|| (lqostat1 & LQOBUSFREE) != 0) {
 		int   restart;
 		int   clear_fifo;
 		int   packetized;

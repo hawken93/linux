@@ -61,12 +61,314 @@ The following information is available in this file:
                               PCI-X 133MHz to Ultra320 SCSI Card
                               (One external VHDC, one internal
                               68-pin)
+   Adaptec SCSI Card 29320LPE Single Channel 64-bit Low Profile        7901B
+                              PCI-E to Ultra320 SCSI Card
+                              (One external VHDC, one internal
+                              68-pin)
 2. Version History
+   3.1 (December 23rd, 2018)
+	- Pulled in some changes between upstream 2.0.16-26:
+	- Non Pack support from 2.0.22
+	- switch to lqostat1 to check for BUSFREE (2.0.19)
+	- forced 32 bit DMA for 29320LPE (2.0.23)
+	- aicasm: Change from 2.0.20 that removes some redundancy
 
-   3.0	  (December 1st, 2005)
+   3.0 (December 1st, 2005)
 	- Updated driver to use SCSI transport class infrastructure
 	- Upported sequencer and core fixes from adaptec released
 	  version 2.0.15 of the driver.
+
+   2.0.26 (Mar 09 2007)
+	- Filtered scsi_remove_host to be used only for 2.6 kernels
+
+   2.0.25 (Feb 14 2007)
+	- Fix rmmod issue, wherein the interrupts were switched off
+		before calling scsi_remove_host
+	- Added 29320LPE ID in MODULE_DEVICE_TABLE
+
+   2.0.24 (Feb 7 2007)
+	- Filter the card dump state for "Invalid Sequencer
+		Interrupt" to be debug only.
+
+   2.0.23 (Feb 1 2007)
+	- Restrict DMA to 32bit for 29320LPE
+
+   2.0.22 (November 28 2006)
+	- Added code to switch to non-packetized when we receive
+	  ENTERING_NONPACK sequencer interrupt.
+
+   2.0.21 (November 11 2006)
+	- Added support for 29320LPE card
+	- Replaced scsi timer functions(add and delete) with
+	  aic79xx_add/delete_timer for >= 2,6,15 kernels
+	- Added local typdefs for Scsi_Device and Scsi_Host_Template
+	  for >= 2,6,15 kernels
+	- Replaced MODULE_PARM with module_param for >=
+	  2,6,15 kernels
+	- Removed host->eh_active in ahd_platform_dump_card_state
+	  for >= 2,6,15 kernels
+
+   2.0.20 (September 13 2006)
+	- In aicasm/Makefile  commented(with #)
+	  the first line to avoid build error
+
+   2.0.19 (September 5 2006)
+	- In ahd_handle_scsiint changed the register check
+	  for BUSFREE from lqistat1 to lqostat1
+
+   2.0.18 (August 28 2006)
+	- Initialized the memory(memset) for scsi_device
+	  after allocation in ahd_linux_dv_target. This
+	  helps in correct detection of a device in
+	  channelB.
+
+   2.0.17 (August 27 2006)
+	- Issued a Bus reset when we receive a MKMSG_FAILED
+	  seq interrupt due to device not sending a message
+	  after we issue a ATN.
+	  This behaviour is seen in some tape devices upon
+	  power reset, the speed nego are changed.Wherein
+	  the device moves from U320 before power off to
+	  U160 upon power up.
+
+   2.0.16 (March 10 2006)
+	- Defined SCSI_DATA_ defines and
+	  scsi_to_pci_dma_dir for kernels greater than
+	  2,6,11 in cam.h.
+	- Changed the locations of declaration/definitions
+	  for ahd_linux_dv_fallback in aic79xx_osm.c to fix
+	  driver build errors for SuSE pro 10
+
+   2.0.15 (September 25, 2005)
+	- Added code to enable slowcrc bit during nego
+	  table update to slow down CRC interval to be
+	  compatible with packetized U320 devices that
+	  can't handle a CRC at full speed.
+
+   2.0.14 (December 23, 2004)
+	- PCI memory space is 512 bytes, not 256.
+	- Fix wrongly calling scsi_adjust_queue_depth() when
+	  the scsi device has no request_queue.
+	- Adding module option "slowcrc" to control the
+	  setting of that bit in the NEGODAT3 (NEGCONOPTS)
+	  register. The LSI chip being used in certain
+	  external storage boxes do not allow 320 connection
+	  for Rev B of the aic79xx. Turning on this bit
+	  works around the bug in the LSI chip.  Default is
+	  off.  To turn on, use kernel/module parameter as:
+
+	  aic79xx=slowcrc:1
+
+	- Adding proper PCI ID tables to support
+	  hotplugging.
+	- Fix a compilation issue after scsi_sleep() became
+	  obsolete, in stead of the new msleep() and
+	  ssleep() functions.
+	- Edit Adaptec Customer Support info.
+	- Fix a bug freeing in reserve_io_regions (wrong pointer
+	  to free).
+	- "Warnings are errors" is now selectable by the
+	  kbuild system -- make it so here.
+	- Fix undefined symbol when compiling aic79xx for 2.6.
+	  Also regenerate the aic7xxx reg and seq files.
+	- Plug leaks in aic79xx_osm.c::ahd_linux_dev_reset().
+	  Convert AIC to ssleep() and msleep() as
+	  scsi_sleep() is no longer available in 2.6.
+	- Fix a double free.  If "ahc_alloc()" fails, it
+	  frees the "name" argument passed.
+	- Invert the polarity of two tests in the recovery
+	  code that could cause the driver to issue a bus
+	  reset more quickly than intended. We want to
+	  *wait* if we find another SCB that could be the
+	  cause of this timeout, not proceed to a bus reset.
+	- As requested by linux-scsi: Add a flag which explicitly
+	  forbids/allows the compilation of the firmware across
+	  the whole build system.
+	- When doing domain validation, we send commands
+	  which do not have a struct request.  In this case
+	  we cannot just call scsi_populate_tag_msg(), since
+	  it dereferences it blindly and oopses the kernel.
+	  Now we call scsi_populate_tag_msg() only if the
+	  SCSI command has a struct request associated with
+	  it.
+
+   2.0.13 (July 22, 2004)
+	- Fix a compilation issue due to the changed location and name
+	  of the "hosts.h" file.  Now it resides as <scsi/scsi_host.h>
+	- Add support for 16 byte CDBs.
+
+   2.0.12 (May 13th, 2004)
+	- Flag driver threads with PF_FREEZE to support software suspend.
+
+   2.0.11 (May 7th, 2004)
+	- Avoid split-completion bugs in certain PCI-X chipsets by
+	  breaking up large completion entry DMAs on ADB boundaries.
+
+   2.0.10 (April 9th, 2004)
+	- Return "command timeout" status instead of "selection timeout
+	  status" to the SCSI mid-layer in response to selection timeouts.
+	  While the latter may seem more correct, the mid-layer will not
+	  offline devices suffering from persistent selection timeouts.
+	  This leads to extremely long recovery times for devices that
+	  go missing.  Returning command timeout status causes the mid-layer
+	  to enter recovery and eventually offline persistently missing
+	  devices.
+
+   2.0.9 (March 29th, 2004)
+	- Abort all pending transactions on a target in response to
+	  a selection timeout.  This greatly increases the speed with
+	  which we recover when a device "goes missing".
+
+   2.0.8 (March 7th, 2004)
+	- Fix PCI device/vendor ID mask for the 7901B probe entry
+	  so the driver will successfully attach to 7901B parts
+	  down on motherboards.
+
+   2.0.7 (February 24th, 2004)
+	- Implement delay on I/O after delivery of a Target Reset.
+	- Correct deregistration of sysrq handler when multiple
+	  controllers are detected.
+
+   2.0.6 (February 6th, 2004)
+	- Force a renegotiation on all inqury commands so that
+	  the negotiated transfer parameters are correct even
+	  if the device has been externally reset since our last
+	  command.  Devices are not allowed to report unit attention
+	  conditions in response to inquiry requests otherwise we'd
+	  not need to treat inquiry commands specially.
+	- Remove all vestiges of pre-2.4.X support.
+	- Close a very rare race-condition in RevA 790X controllers.
+	  If both FIFOs are allocated before the sequencer's idle
+	  loop is able to service the FIFO that was allocated first,
+	  the sequencer could handle them out of order.  This could
+	  lead to a deadlock where the FIFO attached to the SCSI bus
+	  is being serviced by the sequencer, but the other FIFO is
+	  required to handle a snapshot.  The sequencer now detects
+	  this condition and always handles FIFOs that are not currently
+	  on the bus first.
+	- Close a few race conditions by adding critical section
+	  markers into the firmware.  These windows might have caused
+	  issues during error recovery.
+	- Switch the complete DMA SCB list to a tailq so that multiple
+	  SCBs completing with non-zero status do not interfere with
+	  the state for the SCB currently being uploaded.
+	- Use the comparison of a kernel and a sequencer qfreeze
+	  count to control the freezing of outgoing selections.  This
+	  allows the kernel to handle non-zero SCB completions without
+	  having to clear firmware critical sections.
+	- Change the completion FIFO mechanism so that all completion
+	  entries are guaranteed aligned on a 64bit boundary.  This
+	  avoids SCB DMA engine bugs that are triggered if the transfer
+	  is interrupted (e.g. PCI disconnect) on a non-aligned boundary.
+	  In some cases, these bugs would result in duplicate completions.
+	- Use one byte in the new completion entry to indicate if the
+	  SCB completed without a residual or non-zero SCSI status.  This
+	  avoids an extra memory reference in our interrupt handler.
+
+   2.0.5 (December 22nd, 2003)
+	- Correct a bug preventing the driver from renegotiating
+	  during auto-request sense operations when a check
+	  condition occurred for a zero length command.
+	- Sniff sense information returned by targets for unit
+	  attention errors that may indicate that the device has
+	  been changed.  If we see such status for non Domain
+	  Validation related commands, start a DV scan for the
+	  target.  In the past, DV would only occur for hot-plugged
+	  devices if no target had been previously probed for a
+	  particular ID.  This change guarantees that the DV process
+	  will occur even if the user swaps devices without any
+	  interveining I/O to tell us that a device has gone missing.
+	  The old behavior, among other things, would fail to spin up
+	  drives that were hot-plugged since the Linux mid-layer
+	  will only spin-up drives on initial attach.
+	- Correct several issues in the rundown of the good status
+	  FIFO during error recovery.  The typical failure scenario
+	  evidenced by this defect was the loss of several commands
+	  under high load when	 several queue full conditions occurred
+	  back to back.
+
+   2.0.4 (November 6th, 2003)
+	- Support the 2.6.0-test9 kernel
+	- Fix rare deadlock caused by using del_timer_sync from within
+	  a timer handler.
+
+   2.0.3 (October 21st, 2003)
+	- On 7902A4 hardware, use the slow slew rate for transfer
+	  rates slower than U320.  This behavior matches the Windows
+	  driver.
+	- Fix some issues with the ahd_flush_qoutfifo() routine.
+	- Add a delay in the loop waiting for selection activity
+	  to cease.  Otherwise we may exhaust the loop counter too
+	  quickly on fast machines.
+	- Return to processing bad status completions through the
+	  qoutfifo.  This reduces the amount of time the controller
+	  is paused for these kinds of errors.
+	- Move additional common routines to the aiclib OSM library
+	  to reduce code duplication.
+	- Leave removal of softcs from the global list of softcs to
+	  the OSM.  This allows us to avoid holding the list_lock during
+	  device destruction.
+	- Enforce a bus settle delay for bus resets that the
+	  driver initiates.
+	- Fall back to basic DV for U160 devices that lack an
+	  echo buffer.
+
+   2.0.2 (September 4th, 2003)
+	- Move additional common routines to the aiclib OSM library
+	  to reduce code duplication.
+	- Avoid an inadvertant reset of the controller during the
+	  memory mapped I/O test should the controller be left in
+	  the reset state prior to driver initialization.  On some
+	  systems, this extra reset resulted in a system hang due
+	  to a chip access that occurred too soon after reset.
+	- Correct an endian bug in ahd_swap_with_next_hscb.  This
+	  corrects strong-arm support.
+	- Reset the bus for transactions that timeout waiting for
+	  the bus to go free after a disconnect or command complete
+	  message.
+
+   2.0.1 (August 26th, 2003)
+	- Add magic sysrq handler that causes a card dump to be output
+	  to the console for each controller.
+	- Avoid waking the mid-layer's error recovery handler during
+	  timeout recovery by returning DID_ERROR instead of DID_TIMEOUT
+	  for timed-out commands that have been aborted.
+	- Move additional common routines to the aiclib OSM library
+	  to reduce code duplication.
+
+   2.0.0 (August 20th, 2003)
+	- Remove MMAPIO definition and allow memory mapped
+	  I/O for any platform that supports PCI.
+	- Avoid clearing ENBUSFREE during single stepping to avoid
+	  spurious "unexpected busfree while idle" messages.
+	- Correct deadlock in ahd_run_qoutfifo() processing.
+	- Optimize support for the 7901B.
+	- Correct a few cases where an explicit flush of pending
+	  register writes was required to ensure acuracy in delays.
+	- Correct problems in manually flushing completed commands
+	  on the controller.  The FIFOs are now flushed to ensure
+	  that completed commands that are still draining to the
+	  host are completed correctly.
+	- Correct incomplete CDB delivery detection on the 790XB.
+	- Ignore the cmd->underflow field since userland applications
+	  using the legacy command pass-thru interface do not set
+	  it correctly.  Honoring this field led to spurious errors
+	  when users used the "scsi_unique_id" program.
+	- Perform timeout recovery within the driver instead of relying
+	  on the Linux SCSI mid-layer to perform this function.  The
+	  mid-layer does not know the full state of the SCSI bus and
+	  is therefore prone to looping for several minutes to effect
+	  recovery.  The new scheme recovers within 15 seconds of the
+	  failure.
+	- Correct support for manual termination settings.
+	- Increase maximum wait time for serial eeprom writes allowing
+	  writes to function correctly.
+
+   1.3.12 (August 11, 2003)
+	- Implement new error recovery thread that supercedes the existing
+	  Linux SCSI error recovery code.
+	- Fix termination logic for 29320ALP.
+	- Fix SEEPROM delay to compensate for write ops taking longer.
 
    1.3.11 (July 11, 2003)
         - Fix several deadlock issues.
@@ -447,7 +749,7 @@ The following information is available in this file:
       http://www.adaptec.com/buy-cables/.
 
    Europe
-    - Visit our Web site at http://www.adaptec.com/en-US/_common/world_index.
+    - Visit our Web site at http://www.adaptec-europe.com/.
     - To speak with a Technical Support Specialist, call, or email,
       * German:  +49 89 4366 5522, Monday-Friday, 9:00-17:00 CET,
         http://ask-de.adaptec.com/.
@@ -461,7 +763,7 @@ The following information is available in this file:
    Japan
     - Visit our web site at http://www.adaptec.co.jp/.
     - To speak with a Technical Support Specialist, call 
-      +81 3 5308 6120, Monday-Friday, 9:00 a.m. to 12:00 p.m.,
+      +81 3 3831 5190, Monday-Friday, 9:00 a.m. to 12:00 p.m.,
       1:00 p.m. to 6:00 p.m.
 
 -------------------------------------------------------------------
